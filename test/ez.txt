@@ -1,0 +1,12 @@
+5
+3 3
+AA BB CC
+DD AA BB
+FF GG HH
+3
+AA GG
+20
+BB CC
+15
+AA DD AA
+15
