@@ -51,7 +51,7 @@ def set_msize(width,height):
     else:
         for i in range(width):
             if i < len(matrix):
-                for j in range(len(rowsize,height,1)):
+                for j in range(rowsize,height,1):
                     matrix[i].append("")
                     box_matrix[i].append(0)
             else:
@@ -85,7 +85,7 @@ def check_in_list(source: list[str], find: list[str]) -> bool:
 def convert_to_key(move_history: list[tuple[int,int]]) -> list[str]:
     global matrix
     global bsize
-    key = [matrix[move_history[i][0]][move_history[i][1]] for i in range(bsize)]
+    key = [matrix[move_history[i][0]-1][move_history[i][1]-1] for i in range(bsize)]
     return key
     
 def check_reward(key: list[str]) -> int:
@@ -160,8 +160,11 @@ def start_bruteforce():
     start = time.time()
     for i in range(colsize):
         bruteforce([i,0],0,False,[])
-    for result in result_list:
-        debug_print(result_to_str(result))
+    if len(result_list) > 0:
+        for result in result_list:
+            debug_print(result_to_str(result))
+    else:
+        debug_print("FAILED! No valid path found")
     end = time.time()
     runtime = end - start
     print(runtime)
@@ -185,7 +188,7 @@ def result_to_str(result: tuple[int,tuple[int,int]]) -> str:
         text = text + " " + thing
     return text
 
-    
+
 def populate_box(col: int, row: int):
     global row_offset
     global box_matrix
@@ -214,13 +217,23 @@ def populate_box(col: int, row: int):
     root.update()
     return True
 
+seq_frame = Frame(root,background='black',highlightcolor="#90ff6b",highlightthickness=1)
+seq_frame.grid(row=1,column=1)
+def populate_sequence():
+    global seqsize
+    global sequence
+    for i in range(len(sequence)):
+        Label(seq_frame,text=("POINT : %d"%sequence[i][1])).grid(row=i,column=0)
+        for j in range(len(sequence[i][0])):
+            Label(seq_frame,text=("%s"%sequence[i][0][j]),padx=1).grid(row=i,column=1+j)
+
 def open_file(filename = ""):
     global rowsize
     global colsize
     global matrix
     global seqsize
     global sequence
-    
+    global result_list
     if filename == "":
         target = fd.askopenfilename(filetypes=[("Text file","*.txt")])
     else:
@@ -240,11 +253,33 @@ def open_file(filename = ""):
             sequence[i][0] = file.readline().strip().split(" ")
             sequence[i][1] = int(file.readline().strip())
         file.close()
-        
+    
+    result_list = []
     populate_box(colsize,rowsize)
+    populate_sequence()
 
-
-
+def save_file():
+    global result_list
+    global runtime
+    if len(result_list) > 0:
+        filename = fd.asksaveasfilename(initialfile="Result.txt",defaultextension=".txt",filetypes=[("All Files","*.*"),("Txt File","*.txt")])
+        with open(filename,mode="w+") as f:
+            f.write(str(result_list[0][0])+"\n")
+            key = convert_to_key(result_list[0][1])
+            for i in range(len(key)):
+                f.write(key[i])
+                if (i < len(key)-1):
+                    f.write(" ")
+                else:
+                    f.write("\n")
+            for steps in result_list[0][1]:
+                f.write("%d,%d\n"%(int(steps[0])+1,int(steps[1])+1))
+            f.write(("\n%f seconds\n"%(runtime)))
+            f.close()
+    else:
+        pass
+        
+    
 def highlight(label : Label, type : str = "none"):
     if label == 0:
         return False
@@ -256,15 +291,24 @@ def highlight(label : Label, type : str = "none"):
         front = 'black'
         back = '#90ff6b'
         pass
+    elif type == "fail":
+        front = '#90ff6b'
+        back = 'red'
     label.configure(fg=front,bg=back)
     return True
 
 def showbest():
     global result_list
     global box_matrix
-    print(result_list[0])
-    for path in result_list[0][1]:
-        highlight(box_matrix[int(path[0])][int(path[1])],"glow")
+    global rowsize
+    global colsize
+    if len(result_list) != 0:
+        for path in result_list[0][1]:
+            highlight(box_matrix[int(path[0])][int(path[1])],"glow")
+    else:
+        for i in range(rowsize):
+            for j in range(colsize):
+                highlight(box_matrix[j][i],"fail")
     
 def clear_effects():
     global box_matrix
@@ -280,5 +324,9 @@ brute = Button(buttoncontainer,text="BRUTEFORCE",command=start_bruteforce)
 brute.grid(row=0,column=1)
 show = Button(buttoncontainer,text="SHOW",command=showbest)
 show.grid(row=0,column=2)
+    
+
+save = Button(buttoncontainer,text="Save results",command=save_file)
+save.grid(row=3,column=0)
 
 root.mainloop()
